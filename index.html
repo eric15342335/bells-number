@@ -1,0 +1,378 @@
+---
+title: Bouncing Bell Partitions
+---
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  
+  <!-- Load Inter Font from Google Fonts -->
+  <link
+    rel="stylesheet"
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap"
+  >
+
+  {% include analytics.html %}
+  {% seo %}
+
+  <style>
+    /***************************************************************
+     * CSS Variables & Themes
+     ***************************************************************/
+    :root {
+      --font-family: 'Inter', sans-serif;
+
+      /* Light theme colors */
+      --color-bg: #fdfdfd;
+      --color-text: #222;
+      --color-primary: #0d6efd;
+      --color-border: #ccc;
+
+      /* Link color in light theme */
+      --color-link: #0d6efd;
+
+      /* The fixed height for the info bar */
+      --info-bar-height: 2em;
+
+      /* Transition duration for smooth theme changes */
+      --transition-duration: 0.3s;
+    }
+
+    :root.dark {
+      /* Dark theme overrides */
+      --color-bg: #2f323a;
+      --color-text: #eaeaea;
+      --color-primary: #6ea8fe;
+      --color-border: #505050;
+
+      /* Link color in dark theme */
+      --color-link: #6ea8fe;
+    }
+
+    /***************************************************************
+     * Global reset and body
+     ***************************************************************/
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: var(--font-family);
+      background: var(--color-bg);
+      color: var(--color-text);
+      transition: background var(--transition-duration), color var(--transition-duration);
+      overflow: hidden; /* no scrollbars by default */
+    }
+
+    /***************************************************************
+     * Link styles (light & dark)
+     ***************************************************************/
+    a, a:visited {
+      color: var(--color-link);
+      text-decoration: none;
+      transition: color var(--transition-duration);
+    }
+    a:hover {
+      text-decoration: underline;
+    }
+
+    /***************************************************************
+     * Header and Controls
+     ***************************************************************/
+    h1 {
+      text-align: center;
+      margin: 1em 0 0.5em;
+    }
+
+    .controls {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 1em;
+      margin-bottom: 0.5em;
+    }
+
+    label {
+      font-weight: 600;
+    }
+
+    input[type="number"] {
+      width: 60px;
+      padding: 0.3em;
+      font-size: 1em;
+      margin-left: 0.3em;
+    }
+
+    button {
+      cursor: pointer;
+      font-size: 1em;
+      padding: 0.5em 1em;
+      border: none;
+      border-radius: 4px;
+      background: var(--color-primary);
+      color: #fff;
+      transition: background var(--transition-duration);
+    }
+
+    button:hover {
+      background: #0551c3;
+    }
+
+    /* Theme toggle button style */
+    .theme-toggle {
+      background-color: #444;
+      font-weight: 600;
+      color: #fff;
+    }
+
+    /***************************************************************
+     * Info Bar (Bell number)
+     ***************************************************************/
+    .info-bar {
+      text-align: center;
+      font-weight: 600;
+      height: var(--info-bar-height); /* fixed height to avoid layout shift */
+      line-height: var(--info-bar-height);
+      margin-bottom: 0.5em;
+      transition: color var(--transition-duration);
+    }
+
+    /***************************************************************
+     * Main Container
+     ***************************************************************/
+    .container {
+      position: relative;
+      width: 100vw;
+      height: 65vh; /* space for footer */
+      margin: 0 auto 1em;
+      border-top: 3px solid var(--color-border);
+      border-bottom: 3px solid var(--color-border);
+      transition: border-color var(--transition-duration);
+      overflow: hidden;
+    }
+
+    /***************************************************************
+     * Bubbles
+     ***************************************************************/
+    .bubble {
+      position: absolute;
+      width: 120px;
+      height: 120px;
+      border-radius: 50%;
+      border: 2px solid var(--color-border);
+      transition: border-color var(--transition-duration);
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      line-height: 1.3;
+      padding: 8px;
+
+      /* We'll set the background & text color dynamically (random pastel) */
+      font-size: 0.95em;
+    }
+
+    /***************************************************************
+     * Footer / Credits
+     ***************************************************************/
+    footer {
+      text-align: center;
+      padding: 0.5em 0;
+      font-size: 0.9em;
+      transition: color var(--transition-duration);
+    }
+  </style>
+</head>
+
+<body>
+  <h1>Bouncing Bell Partitions</h1>
+
+  <!-- Controls: input n, generate button, toggle theme -->
+  <div class="controls">
+    <div>
+      <label for="inputN">n (≤ 7):</label>
+      <input type="number" id="inputN" value="3" min="0">
+      <button onclick="generateBouncingBubbles()">Generate</button>
+    </div>
+
+    <button class="theme-toggle" onclick="toggleDarkTheme()">Toggle Dark Theme</button>
+  </div>
+
+  <!-- Fixed-height bar for the Bell number -->
+  <div id="infoBar" class="info-bar"></div>
+
+  <div class="container" id="bubbleContainer"></div>
+
+  <footer>
+    Created by <a href="https://openai.com/o1/">ChatGPT o1</a> | 
+    <a href="/index.html">Developer</a> | 
+    Last updated: {{ site.time | date: "%Y-%m-%d" }}
+  </footer>
+
+  <script>
+    /***************************************************************
+     * 1) Generate all partitions of {1,2,...,n}
+     ***************************************************************/
+    function generateAllPartitions(n) {
+      const result = [];
+      function backtrack(partitionsSoFar, nextNumber) {
+        if (nextNumber > n) {
+          const copy = partitionsSoFar.map(sub => sub.slice());
+          result.push(copy);
+          return;
+        }
+        // Add to existing subsets
+        for (let i = 0; i < partitionsSoFar.length; i++) {
+          partitionsSoFar[i].push(nextNumber);
+          backtrack(partitionsSoFar, nextNumber + 1);
+          partitionsSoFar[i].pop();
+        }
+        // Create new subset
+        partitionsSoFar.push([ nextNumber ]);
+        backtrack(partitionsSoFar, nextNumber + 1);
+        partitionsSoFar.pop();
+      }
+      backtrack([], 1);
+      return result;
+    }
+
+    /***************************************************************
+     * 2) Bouncing Bubbles
+     ***************************************************************/
+    let bubbles = [];
+    let animationId = null;
+
+    function generateBouncingBubbles() {
+      // Cancel any previous animation
+      if (animationId) cancelAnimationFrame(animationId);
+      bubbles = [];
+
+      const n = parseInt(document.getElementById("inputN").value, 10);
+      const infoBar = document.getElementById("infoBar");
+      const bubbleContainer = document.getElementById("bubbleContainer");
+
+      // Clear old content
+      infoBar.textContent = "";
+      bubbleContainer.innerHTML = "";
+
+      if (isNaN(n) || n < 0) {
+        alert("Please enter a valid non-negative integer.");
+        return;
+      }
+
+      // Generate partitions => Bell number is length
+      const partitions = generateAllPartitions(n);
+      const bellNum = partitions.length;
+      infoBar.textContent = `Bell number B(${n}) = ${bellNum}`;
+
+      // Create one bubble per partition
+      partitions.forEach(part => createBubble(part));
+
+      // Start animation
+      bounceLoop();
+    }
+
+    function createBubble(partition) {
+      const container = document.getElementById("bubbleContainer");
+      const rect = container.getBoundingClientRect();
+
+      // Partition text (each subset on new line)
+      const partitionText = partition.map(sub => sub.join(",")).join("\n");
+
+      // Create bubble
+      const bubble = document.createElement("div");
+      bubble.className = "bubble";
+      bubble.textContent = partitionText;
+
+      // Random pastel background, choose text color for contrast
+      const { bgColor, textColor } = randomPastelColor();
+      bubble.style.backgroundColor = bgColor;
+      bubble.style.color = textColor;
+
+      // Bubble size
+      const size = 120;
+
+      // Random initial position
+      const x = Math.random() * (rect.width - size);
+      const y = Math.random() * (rect.height - size);
+
+      // Random velocity
+      let dx = Math.random() * 4 - 2;
+      let dy = Math.random() * 4 - 2;
+      if (Math.abs(dx) < 0.5) dx = dx >= 0 ? 0.5 : -0.5;
+      if (Math.abs(dy) < 0.5) dy = dy >= 0 ? 0.5 : -0.5;
+
+      bubble.style.transform = `translate(${x}px, ${y}px)`;
+      container.appendChild(bubble);
+
+      // Store state
+      bubbles.push({ el: bubble, x, y, dx, dy, size });
+    }
+
+    function bounceLoop() {
+      const container = document.getElementById("bubbleContainer");
+      const rect = container.getBoundingClientRect();
+
+      bubbles.forEach(b => {
+        b.x += b.dx;
+        b.y += b.dy;
+
+        // Bounce horizontally
+        if (b.x < 0) {
+          b.x = 0;
+          b.dx = -b.dx;
+        } else if (b.x + b.size > rect.width) {
+          b.x = rect.width - b.size;
+          b.dx = -b.dx;
+        }
+
+        // Bounce vertically
+        if (b.y < 0) {
+          b.y = 0;
+          b.dy = -b.dy;
+        } else if (b.y + b.size > rect.height) {
+          b.y = rect.height - b.size;
+          b.dy = -b.dy;
+        }
+
+        // Apply position
+        b.el.style.transform = `translate(${b.x}px, ${b.y}px)`;
+      });
+      animationId = requestAnimationFrame(bounceLoop);
+    }
+
+    /***************************************************************
+     * 3) Dark Theme Toggle
+     ***************************************************************/
+    function toggleDarkTheme() {
+      document.documentElement.classList.toggle("dark");
+    }
+
+    /***************************************************************
+     * 4) Random Pastel Generator
+     *    We'll also pick text color black/white automatically
+     ***************************************************************/
+    function randomPastelColor() {
+      // Random hue
+      const hue = Math.floor(Math.random() * 360);
+      // Pastel saturation & lightness
+      const saturation = 60 + Math.random() * 20; // 60-80%
+      const lightness = 85 + Math.random() * 10;  // 85-95%
+      const bgColor = `hsl(${hue}, ${saturation}%, ${lightness}%)`;
+
+      // Decide text color (black or white) for contrast
+      let textColor = "#000";
+      if (lightness < 70) {
+        textColor = "#fff";
+      }
+
+      return { bgColor, textColor };
+    }
+  </script>
+</body>
+</html>
