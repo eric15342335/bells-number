@@ -5,7 +5,9 @@ title: Bouncing Bell Partitions
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  
+  <!-- Optimize for mobile screens -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
   <!-- Load Inter Font from Google Fonts -->
   <link
     rel="stylesheet"
@@ -27,8 +29,6 @@ title: Bouncing Bell Partitions
       --color-text: #222;
       --color-primary: #0d6efd;
       --color-border: #ccc;
-
-      /* Link color in light theme */
       --color-link: #0d6efd;
 
       /* The fixed height for the info bar */
@@ -44,8 +44,6 @@ title: Bouncing Bell Partitions
       --color-text: #eaeaea;
       --color-primary: #6ea8fe;
       --color-border: #505050;
-
-      /* Link color in dark theme */
       --color-link: #6ea8fe;
     }
 
@@ -145,7 +143,8 @@ title: Bouncing Bell Partitions
      ***************************************************************/
     .container {
       position: relative;
-      width: 100vw;
+      /* Use 100% width to avoid horizontal scrolling on mobile */
+      width: 100%;
       height: 65vh; /* space for footer */
       margin: 0 auto 1em;
       border-top: 3px solid var(--color-border);
@@ -185,6 +184,36 @@ title: Bouncing Bell Partitions
       padding: 0.5em 0;
       font-size: 0.9em;
       transition: color var(--transition-duration);
+    }
+
+    /***************************************************************
+     * Responsive Adjustments
+     *  - For screens narrower than 600px, shrink bubble/container
+     ***************************************************************/
+    @media (max-width: 600px) {
+      .bubble {
+        width: 80px;
+        height: 80px;
+        font-size: 0.8em;
+      }
+
+      .container {
+        height: 50vh;
+      }
+
+      h1 {
+        font-size: 1.3em;
+      }
+
+      button {
+        font-size: 0.9em;
+        padding: 0.4em 0.8em;
+      }
+
+      label,
+      .info-bar {
+        font-size: 0.9em;
+      }
     }
   </style>
 </head>
@@ -288,14 +317,15 @@ title: Bouncing Bell Partitions
       const bubble = document.createElement("div");
       bubble.className = "bubble";
       bubble.textContent = partitionText;
+      container.appendChild(bubble); // Append first so offsetWidth is correct
 
       // Random pastel background, choose text color for contrast
       const { bgColor, textColor } = randomPastelColor();
       bubble.style.backgroundColor = bgColor;
       bubble.style.color = textColor;
 
-      // Bubble size
-      const size = 120;
+      // Now measure the bubble after appending
+      const size = bubble.offsetWidth; // or offsetHeight
 
       // Random initial position
       const x = Math.random() * (rect.width - size);
@@ -308,7 +338,6 @@ title: Bouncing Bell Partitions
       if (Math.abs(dy) < 0.5) dy = dy >= 0 ? 0.5 : -0.5;
 
       bubble.style.transform = `translate(${x}px, ${y}px)`;
-      container.appendChild(bubble);
 
       // Store state
       bubbles.push({ el: bubble, x, y, dx, dy, size });
